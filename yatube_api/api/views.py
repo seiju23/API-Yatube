@@ -1,4 +1,3 @@
-from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, viewsets, filters, generics
 from rest_framework.pagination import LimitOffsetPagination
@@ -19,7 +18,6 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly
     )
-    filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('group',)
     pagination_class = LimitOffsetPagination
 
