@@ -22,9 +22,10 @@ class Base64ImageField(serializers.ImageField):
 
 class PostSerializer(serializers.ModelSerializer):
     """Сериализатор для постов."""
-    author = SlugRelatedField(slug_field='username',
-                              read_only=True,
-                              default=serializers.CurrentUserDefault())
+    author = SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
     image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
@@ -64,18 +65,18 @@ class FollowSerializer(serializers.ModelSerializer):
         queryset=User.objects.all()
     )
 
-    def validate(self, data):
-        if self.context['request'].user != data.get('following'):
-            return data
-        raise serializers.ValidationError(
-            'Вы не можете подписаться на себя.'
-        )
-
     class Meta:
-        fields = ('__all__')
+        fields = '__all__'
         model = Follow
         validators = [UniqueTogetherValidator(
             queryset=Follow.objects.all(), fields=(
                 'user', 'following'),
             message='Вы уже подписаны на этого автора.'
         )]
+
+    def validate_following(self, following):
+        if self.context.get('request').user != following:
+            return following
+        raise serializers.ValidationError(
+            'Вы не можете подписаться на себя.'
+        )

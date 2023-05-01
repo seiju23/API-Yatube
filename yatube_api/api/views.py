@@ -1,8 +1,8 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, viewsets, filters, generics
+from rest_framework import permissions, viewsets, filters, mixins
 from rest_framework.pagination import LimitOffsetPagination
 
-from posts.models import Group, Post, Follow, User
+from posts.models import Group, Post, Follow
 
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
@@ -18,7 +18,6 @@ class PostViewSet(viewsets.ModelViewSet):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly
     )
-    filterset_fields = ('group',)
     pagination_class = LimitOffsetPagination
 
     def perform_create(self, serializer):
@@ -30,7 +29,7 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     """Вьюсет для групп."""
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (permissions.AllowAny,)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -47,26 +46,26 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Возвращает комментарии для текущего поста."""
-        comments = self.create_post().comments.all()
-        return comments
+        return self.create_post().comments.all()
 
     def perform_create(self, serializer):
         """Устанавливает автором по умолчанию текущего пользователя."""
         serializer.save(author=self.request.user, post=self.create_post())
 
 
-class FollowView(generics.ListCreateAPIView):
+class FollowViewSet(mixins.CreateModelMixin,
+                    mixins.ListModelMixin,
+                    viewsets.GenericViewSet
+                    ):
     """Вью-класс для подписок."""
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
-    permission_classes = (permissions.IsAuthenticated,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('following__username', )
 
     def get_queryset(self):
         """Возвращает список подписок."""
-        user = get_object_or_404(User, username=self.request.user)
-        return Follow.objects.filter(user=user)
+        return self.request.user.follower.all()
 
     def perform_create(self, serializer):
         """Устанавливает подписчиком текущего пользователя."""
